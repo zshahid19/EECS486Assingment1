@@ -85,22 +85,83 @@ def tokenizeText(cleaned_text):
             if current_token:
                 tokens.extend(expand_contractions(current_token))
                 current_token = ''
-
-
-
     if current_token:
         tokens.extend(expand_contractions(current_token))
 
     return tokens
 
+    
+#Input: tokenized_text list of pre-tokenized text (list of strings)
+#Output: Set of unique characters in the tokenized text 
+#Purpose: find the vocabulary from the tokenized text
+def get_vocab(tokenized_text):
+    vocab = set()
+    for word in tokenized_text:
+        vocab.update(list(word))
+    return vocab
+
+#Input: tokenized_text
+#Output: dict with pair frequencies
+#Purpose: Calculates the frequinces of character pairs
+def get_pair_frequencies(tokenized_text):
+    pairs = {}
+    for tokens in tokenized_text:
+        for word in tokens:
+            chars = list(' '.join(word))  # Join the tokens into a single string and then list it
+            for i in range(len(chars)-1):
+                pair = (chars[i], chars[i+1])
+                if pair in pairs:
+                    pairs[pair] += 1
+                else:
+                    pairs[pair] = 1
+    return pairs
+# Input: pair of two characters, tokenized_text
+# Output: merged pair token
+# Purpose: merge pair of character
+def merge_vocab(pair, tokenized_text):
+    merged_text = []
+    bigram = pair[0] + pair[1]
+    for word in tokenized_text:
+        new_word = word.replace(' '.join(pair), bigram)
+        merged_text.append(new_word)
+    return merged_text
+
 #input list( of tokens), vocabSize
 #output: list (subword tokens), list (merge rules)
 #Purpose: split tokens into subwords to increase vocab count?
-def BPE():
-    return
+def bpe(tokenized_text, vocabSize):
+    # Converting list of lists into a list of strings (each string contains tokens joined by space)
+    tokenized_text = [' '.join(tokens) for tokens in tokenized_text]
+    vocab = set(' '.join(tokenized_text).split())  # Initial vocabulary
+    merge_rules = []
+
+    for i in range(vocabSize):
+        pairs = get_pair_frequencies(tokenized_text)
+        if not pairs:
+            break
+        best_pair = max(pairs, key=pairs.get)
+        tokenized_text = merge_vocab(best_pair, tokenized_text)
+        merge_rules.append(best_pair)
+        vocab.update([''.join(best_pair)])  # Update the vocabulary with the new merged token
+
+    # Splitting the text back into tokens and counting frequencies
+    token_frequencies = {}
+    for text in tokenized_text:
+        tokens = text.split()
+        for token in tokens:
+            token_frequencies[token] = token_frequencies.get(token, 0) + 1
+
+    return tokenized_text, vocab, merge_rules, token_frequencies
 
 def main():
-    folder_path = "cranfieldDocs/"
+    if len(sys.argv) != 3:
+        print("Usage: script.py <folder_path> <vocab_size>")
+        sys.exit(1)
+    folder_path = sys.argv[1]
+    vocab_size = int(sys.argv[2])
+
+    folder_path = "test1/"
+    vocab_size = 5
     file_paths = list_files_in_folder(folder_path)
     token_list = []
     
@@ -110,11 +171,29 @@ def main():
             content = file.read()
             #Sending each file to removeSGML
             cleaned_content = removeSGML(content)
-            print(f"Revmoed SGL on file: {file_path}")
+            # print(f"Revmoed SGL on file: {file_path}")
             #Send each cleaned file to be tokenized
             token_list.append(tokenizeText(cleaned_content))
     # print(len(token_list)) Now we have a list of list of tokens 2d list.
-            #BPE time
+    
+    #BPE time
+    new_text, new_vocab, merge_rules, token_frequencies = bpe(token_list, vocab_size)
+
+    # Sort tokens and merge rules
+    sorted_tokens = sorted(token_frequencies.items(), key=lambda x: x[1], reverse=True)
+    sorted_merge_rules = merge_rules[:20]  # First 20 merge rules
+
+    # Write to file
+    with open("preprocess.output", "w") as file:
+        file.write(f"Tokens [{len(new_vocab)}]\n")
+        file.write(f"Merge rules [{len(merge_rules)}]\n")
+        
+        for rule in sorted_merge_rules:
+            file.write(f"({rule[0]}, {rule[1]}) -> {rule[0]}{rule[1]}\n")
+
+        file.write("\nTop 50 tokens\n")
+        for token, freq in sorted_tokens[:50]:
+            file.write(f"{token} [{freq}]\n")
 
 
 def open_file(file_name):
