@@ -45,12 +45,6 @@ def removeSGML(file_text):
 #Output: List (of tokens)
 #Purpose: Take in the cleaned text, tokenize that text then return list of tokens of that text
 def tokenizeText(cleaned_text):
-    
-    #Input:Take each token string
-    #Output: returning the token list
-    #Purpose: To take in each purposed token. Check if its an contraction, date, or an hyphanted pharse
-    #         then after testing for that we put it in the list of tokens.
-     
     # Expand contractions
     def expand_contractions(token):
         contractions = { "I'm": "I am", "I'm'a": "I am about to", "I'm'o": "I am going to", "I've": "I have", "I'll": "I will", "I'll've": "I will have", "I'd": "I would", "I'd've": "I would have", "Whatcha": "What are you", "amn't": "am not", "ain't": "are not", "aren't": "are not", "'cause": "because", "can't": "cannot", "can't've": "cannot have", "could've": "could have", "couldn't": "could not", "couldn't've": "could not have", "daren't": "dare not", "daresn't": "dare not", "dasn't": "dare not", "didn't": "did not", "didn’t": "did not", "don't": "do not", "don’t": "do not", "doesn't": "does not", "e'er": "ever", "everyone's": "everyone is", "finna": "fixing to", "gimme": "give me", "gon't": "go not", "gonna": "going to", "gotta": "got to", "hadn't": "had not", "hadn't've": "had not have", "hasn't": "has not", "haven't": "have not", "he've": "he have", "he's": "he is", "he'll": "he will", "he'll've": "he will have", "he'd": "he would", "he'd've": "he would have", "here's": "here is", "how're": "how are", "how'd": "how did", "how'd'y": "how do you", "how's": "how is", "how'll": "how will", "isn't": "is not", "it's": "it is", "'tis": "it is", "'twas": "it was", "it'll": "it will", "it'll've": "it will have", "it'd": "it would", "it'd've": "it would have", "kinda": "kind of", "let's": "let us", "luv": "love", "ma'am": "madam", "may've": "may have", "mayn't": "may not", "might've": "might have", "mightn't": "might not", "mightn't've": "might not have", "must've": "must have", "mustn't": "must not", "mustn't've": "must not have", "needn't": "need not", "needn't've": "need not have", "ne'er": "never", "o'": "of", "o'clock": "of the clock", "ol'": "old", "oughtn't": "ought not", "oughtn't've": "ought not have", "o'er": "over", "shan't": "shall not", "sha'n't": "shall not", "shalln't": "shall not", "shan't've": "shall not have", "she's": "she is", "she'll": "she will", "she'd": "she would", "she'd've": "she would have", "should've": "should have", "shouldn't": "should not", "shouldn't've": "should not have", "so've": "so have", "so's": "so is", "somebody's": "somebody is", "someone's": "someone is", "something's": "something is", "sux": "sucks", "that're": "that are", "that's": "that is", "that'll": "that will", "that'd": "that would", "that'd've": "that would have", "'em": "them", "there're": "there are", "there's": "there is", "there'll": "there will", "there'd": "there would", "there'd've": "there would have", "these're": "these are", "they're": "they are", "they've": "they have", "they'll": "they will", "they'll've": "they will have", "they'd": "they would", "they'd've": "they would have", "this's": "this is", "this'll": "this will", "this'd": "this would", "those're": "those are", "to've": "to have", "wanna": "want to", "wasn't": "was not", "we're": "we are", "we've": "we have", "we'll": "we will", "we'll've": "we will have", "we'd": "we would", "we'd've": "we would have", "weren't": "were not", "what're": "what are", "what'd": "what did", "what've": "what have", "what's": "what is", "what'll": "what will", "what'll've": "what will have", "when've": "when have", "when's": "when is", "where're": "where are", "where'd": "where did", "where've": "where have", "where's": "where is", "which's": "which is", "who're": "who are", "who've": "who have", "who's": "who is", "who'll": "who will", "who'll've": "who will have", "who'd": "who would", "who'd've": "who would have", "why're": "why are", "why'd": "why did", "why've": "why have", "why's": "why is", "will've": "will have", "won't": "will not", "won't've": "will not have", "would've": "would have", "wouldn't": "would not", "wouldn't've": "would not have", "y'all": "you all", "y'all're": "you all are", "y'all've": "you all have", "y'all'd": "you all would", "y'all'd've": "you all would have", "you're": "you are", "you've": "you have", "you'll've": "you shall have", "you'll": "you will", "you'd": "you would", "you'd've": "you would have", "to cause": "to cause", "will cause": "will cause", "should cause": "should cause", "would cause": "would cause", "can cause": "can cause", "could cause": "could cause", "must cause": "must cause", "might cause": "might cause", "shall cause": "shall cause", "may cause": "may cause" }
@@ -70,23 +64,38 @@ def tokenizeText(cleaned_text):
 
     tokens = []
     current_token = ''
+    word_start = True  # Flag to indicate start of a new word
 
     for i, char in enumerate(cleaned_text):
-        # Check if the character should be added to the current token
+        if char.isspace() or char in '.!?':
+            word_start = True
+            if current_token:
+                tokens.extend(expand_contractions(current_token))
+                current_token = ''
+            continue
+
+        if word_start and current_token:
+            # If we are at a word start, finalize the previous token
+            tokens.extend(expand_contractions(current_token))
+            current_token = ''
+        
+        word_start = False  # Reset word start flag as we are in the middle of a word
+
+        # logic for handling character addition to tokens
         if (char.isalpha() or char in ['\'', '-'] or 
             is_date(char, current_token) or 
             is_big_number(char, current_token)):
             current_token += char
         elif char == '.' and (is_big_number(char, current_token) or is_acronym(i, char, cleaned_text)):
-            # Include periods in numbers, acronyms, and abbreviations
             current_token += char
         else:
-            # Finalize the current token if it's not empty and start a new one
             if current_token:
                 tokens.extend(expand_contractions(current_token))
                 current_token = ''
+
+        # Handle the final token
     if current_token:
-        tokens.extend(expand_contractions(current_token))
+            tokens.extend(expand_contractions(current_token))
 
     return tokens
 
@@ -106,62 +115,94 @@ def get_vocab(tokenized_text):
 def get_pair_frequencies(tokenized_text):
     pairs = {}
     for tokens in tokenized_text:
-        for word in tokens:
-            chars = list(' '.join(word))  # Join the tokens into a single string and then list it
-            for i in range(len(chars)-1):
-                pair = (chars[i], chars[i+1])
-                if pair in pairs:
-                    pairs[pair] += 1
-                else:
-                    pairs[pair] = 1
+        for i in range(len(tokens)-1):
+            pair = (tokens[i], tokens[i+1])
+            if pair in pairs:
+                pairs[pair] += 1
+            else:
+                pairs[pair] = 1
     return pairs
 # Input: pair of two characters, tokenized_text
 # Output: merged pair token
 # Purpose: merge pair of character
 def merge_vocab(pair, tokenized_text):
     merged_text = []
-    bigram = pair[0] + pair[1]
-    for word in tokenized_text:
-        new_word = word.replace(' '.join(pair), bigram)
-        merged_text.append(new_word)
+    for tokens in tokenized_text:
+        new_tokens = []
+        i = 0
+        while i < len(tokens):
+            if i < len(tokens) - 1 and (tokens[i], tokens[i + 1]) == pair:
+                merged_token = tokens[i] + tokens[i + 1]
+                print(f"Merging {tokens[i]} and {tokens[i + 1]} into {merged_token}")  # Debug print
+                new_tokens.append(merged_token)
+                i += 2
+            else:
+                new_tokens.append(tokens[i])
+                i += 1
+        merged_text.append(new_tokens)
     return merged_text
+
+
+
+
+def flatten_list(nested_list):
+    flat_list = []
+    for sublist in nested_list:
+        if isinstance(sublist, list):
+            flat_list.extend(sublist)
+        else:
+            flat_list.append(sublist)
+    return flat_list
+
+
+
 
 #input list( of tokens), vocabSize
 #output: list (subword tokens), list (merge rules)
 #Purpose: split tokens into subwords to increase vocab count?
-def bpe(tokenized_text, vocabSize):
-    # Converting list of lists into a list of strings (each string contains tokens joined by space)
-    tokenized_text = [' '.join(tokens) for tokens in tokenized_text]
-    vocab = set(' '.join(tokenized_text).split())  # Initial vocabulary
+def bpe(tokenized_text, target_vocab_size):
+    flat_list = flatten_list(tokenized_text)
+
+    # Initialize vocabulary with individual characters from tokens
+    vocab = set(''.join(flat_list))  # Create a set of unique characters
+
     merge_rules = []
 
-    for i in range(vocabSize):
-        pairs = get_pair_frequencies(tokenized_text)
+    while len(vocab) < target_vocab_size:
+        pairs = get_pair_frequencies(flat_list)
         if not pairs:
             break
+
         best_pair = max(pairs, key=pairs.get)
-        tokenized_text = merge_vocab(best_pair, tokenized_text)
         merge_rules.append(best_pair)
-        vocab.update([''.join(best_pair)])  # Update the vocabulary with the new merged token
+        
+        flat_list = merge_vocab(best_pair, flat_list)
+        flat_list = flatten_list(flat_list)  # Flatten the list after each merge
 
-    # Splitting the text back into tokens and counting frequencies
+        # Update the vocabulary
+        vocab = set(''.join(flat_list))
+
+    # Counting frequencies
     token_frequencies = {}
-    for text in tokenized_text:
-        tokens = text.split()
-        for token in tokens:
-            token_frequencies[token] = token_frequencies.get(token, 0) + 1
+    for token in flat_list:
+        if isinstance(token, list):
+            raise ValueError(f"Unexpected list in flat_list: {token}")
+        token_frequencies[token] = token_frequencies.get(token, 0) + 1
 
-    return tokenized_text, vocab, merge_rules, token_frequencies
+    return flat_list, vocab, merge_rules, token_frequencies
+
+
+
 
 def main():
     if len(sys.argv) != 3:
         print("Usage: script.py <folder_path> <vocab_size>")
-        sys.exit(1)
-    folder_path = sys.argv[1]
-    vocab_size = int(sys.argv[2])
+    #     sys.exit(1)
+    #folder_path = sys.argv[1]
+    #vocab_size = int(sys.argv[2])
 
     folder_path = "test1/"
-    vocab_size = 5
+    vocab_size = 10000
     file_paths = list_files_in_folder(folder_path)
     token_list = []
     
