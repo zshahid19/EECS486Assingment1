@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os
 import re
+import sys
+from collections import defaultdict
 """
 Module Docstring
 """
@@ -103,120 +105,81 @@ def tokenizeText(cleaned_text):
 #Input: tokenized_text list of pre-tokenized text (list of strings)
 #Output: Set of unique characters in the tokenized text 
 #Purpose: find the vocabulary from the tokenized text
-def get_vocab(tokenized_text):
-    vocab = set()
-    for word in tokenized_text:
-        vocab.update(list(word))
-    return vocab
+def create_initial_vocabulary(tokens):
+    vocabulary = defaultdict(int)
+    for token in tokens:
+        for character in token:
+            vocabulary[character] += 1
+    return vocabulary
+
 
 #Input: tokenized_text
 #Output: dict with pair frequencies
 #Purpose: Calculates the frequinces of character pairs
-def get_pair_frequencies(tokenized_text, token_frequencies):
-    pairs = {}
-    for tokens in tokenized_text:
-        for i in range(len(tokens)-1):
-            pair = (tokens[i], tokens[i+1])
-            if pair in pairs:
-                pairs[pair] += 1
-            else:
-                pairs[pair] = 1
+def find_most_frequent_pair(tokens):
+    pair_freqs = defaultdict(int)
+    for token in tokens:
+        for i in range(len(token) - 1):
+            # Considering pairs that are not part of a merged token
+            if len(token[i]) == 1 and len(token[i + 1]) == 1:
+                pair = (token[i], token[i + 1])
+                pair_freqs[pair] += 1
+    return max(pair_freqs, key=pair_freqs.get) if pair_freqs else None
 
-    # Update token frequencies
-    for pair, freq in pairs.items():
-        for token in pair:
-            if token in token_frequencies:
-                token_frequencies[token] -= freq
-            else:
-                token_frequencies[token] = -freq  # Initialize if not found
-
-    return pairs, token_frequencies
 
 # Input: pair of two characters, tokenized_text
 # Output: merged pair token
 # Purpose: merge pair of character
-def merge_vocab(pair, tokenized_text, token_frequencies):
-    merged_text = []
-    for tokens in tokenized_text:
-        new_tokens = []
+def merge_tokens(tokens, pair):
+    merged_token = ''.join(pair)
+    new_tokens = []
+    for token in tokens:
+        new_token = []
         i = 0
-        while i < len(tokens) - 1:
-            if (tokens[i], tokens[i + 1]) == pair:
-                merged_token = tokens[i] + tokens[i + 1]
-                print(f"Merging {tokens[i]} and {tokens[i + 1]} into {merged_token}")  # Debug print
-                new_tokens.append(merged_token)
-                if merged_token in token_frequencies:
-                    token_frequencies[merged_token] += 1
-                else:
-                    token_frequencies[merged_token] = 1
-                i += 2
+        while i < len(token):
+            if i < len(token) - 1 and token[i:i+2] == list(pair):
+                new_token.append(merged_token)
+                i += 2  # Skip the next character as it's part of the merged pair
             else:
-                new_tokens.append(tokens[i])
+                new_token.append(token[i])
                 i += 1
-        if i < len(tokens):
-            new_tokens.append(tokens[i])
-        merged_text.append(new_tokens)
-    return merged_text, token_frequencies
+        new_tokens.append(new_token)
+    return new_tokens
 
+def update_vocabulary(vocabulary, tokens, merged_token):
+    merged_token_frequency = sum(token.count(merged_token) for token in tokens)
+    vocabulary[merged_token] += merged_token_frequency
 
+    for char in set(merged_token):
+        if char in vocabulary:
+            vocabulary[char] -= merged_token_frequency * merged_token.count(char)
 
-
-def flatten_list(nested_list):
-    flat_list = []
-    for sublist in nested_list:
-        if isinstance(sublist, list):
-            flat_list.extend(sublist)
-        else:
-            flat_list.append(sublist)
-    return flat_list
-
-
+    return vocabulary
 
 
 #input list( of tokens), vocabSize
 #output: list (subword tokens), list (merge rules)
 #Purpose: split tokens into subwords to increase vocab count?
-def bpe(tokenized_text, target_vocab_size):
-    # Correctly flatten the tokenized text into a single list of tokens
-    flat_list = []
-    for sublist in tokenized_text:
-        for item in sublist:
-            if isinstance(item, list):
-                # If the item is a list, extend flat_list by its elements
-                flat_list.extend(item)
-            elif isinstance(item, str):
-                # Directly append strings to flat_list
-                flat_list.append(item)
-            else:
-                # Handle other types appropriately or raise an error
-                raise TypeError("Token is neither a string nor a list.")
-
-    # Initialize vocabulary with individual tokens
-    vocab = set(flat_list)
+def bpe(token_list, vocab_size):
+    tokens = [token for sublist in token_list for token in sublist]
+    vocabulary = create_initial_vocabulary(tokens)
     merge_rules = []
 
-    while len(vocab) > target_vocab_size:
-        pairs = get_pair_frequencies(flat_list)
-        if not pairs:
+    while len(vocabulary) < vocab_size:
+        most_frequent_pair = find_most_frequent_pair(tokens)
+        if not most_frequent_pair:
             break
-        best_pair = max(pairs, key=pairs.get)
-        
-        # Check if there are no more pairs to merge
-        if pairs[best_pair] <= 1:
-            break
-        
-        merge_rules.append(best_pair)
-        flat_list, token_frequencies = merge_vocab(best_pair, flat_list, token_frequencies)
+        tokens = merge_tokens(tokens, most_frequent_pair)
+        merged_token = ''.join(most_frequent_pair)
+        vocabulary = update_vocabulary(vocabulary, tokens, merged_token)
+        merge_rules.append(most_frequent_pair)
 
-        # Update vocabulary after each merge
-        vocab = set(flat_list)
+    token_frequencies = defaultdict(int)
+    for token in tokens:
+        token_frequencies[token] += 1
 
-    # Counting frequencies
-    token_frequencies = {}
-    for token in flat_list:
-        token_frequencies[token] = token_frequencies.get(token, 0) + 1
+    return tokens, vocabulary, merge_rules, token_frequencies
 
-    return flat_list, vocab, merge_rules, token_frequencies
 
 
 def main():
@@ -227,7 +190,7 @@ def main():
     #vocab_size = int(sys.argv[2])
 
     folder_path = "test1/"
-    vocab_size = 10000
+    vocab_size = 100
     file_paths = list_files_in_folder(folder_path)
     token_list = []
     
