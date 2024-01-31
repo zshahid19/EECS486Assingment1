@@ -130,19 +130,25 @@ def find_most_frequent_pair(tokens, vocabulary):
 
     for token in tokens:
         i = 0
-        while i < len(token) - 1:
-            if token[i:i+2] not in vocabulary:  # Check if the pair is not already a merged token
-                pair = token[i] + token[i + 1]
-                pair_freqs[pair] += 1
-                i += 1  # Move to the next character
+        while i < len(token):
+            # Find the longest possible match in the vocabulary
+            for j in range(i + 1, len(token) + 1):
+                if token[i:j] in vocabulary:
+                    if j < len(token) and token[j] not in vocabulary:  # Check next char is not a merged token
+                        pair = token[i:j] + token[j]
+                        pair_freqs[pair] += 1
+                    break  # Break to avoid double counting
             else:
-                i += 2  # Skip the next character as it's part of a merged pair
+                j = i + 1  # Move to next char if no match found
+            i = j
+
     # Find the most frequent pair not in vocabulary
     sorted_pairs = sorted(pair_freqs.items(), key=lambda x: x[1], reverse=True)
     for pair, _ in sorted_pairs:
         if pair not in vocabulary:
             return pair
     return None
+
 
 
 
@@ -167,7 +173,23 @@ def update_pair_frequencies(pair_freqs, tokens, new_token, vocabulary):
     return
 
 
+def calculate_merged_token_frequencies(tokens, vocabulary):
+    merged_freqs = defaultdict(int)
+    for token in tokens:
+        for vocab_token in vocabulary:
+            if vocab_token in token:
+                start_idx = token.index(vocab_token) + len(vocab_token)
+                if start_idx < len(token):
+                    merged_token = vocab_token + token[start_idx]
+                    if merged_token not in vocabulary:
+                        merged_freqs[merged_token] += 1
+    return merged_freqs
 
+def find_most_frequent_new_token(merged_freqs, vocabulary):
+    for merged_token, freq in sorted(merged_freqs.items(), key=lambda x: x[1], reverse=True):
+        if merged_token not in vocabulary:
+            return merged_token
+    return None
 
 # Input: pair of two characters, tokenized_text
 # Output: merged pair token
@@ -183,17 +205,23 @@ def merge_tokens(tokens, merged_token):
     return new_tokens
 
 
+def update_vocabulary(vocabulary, new_merged_token, frequency, previous_merged_tokens):
+    # Add the new merged token
+    vocabulary[new_merged_token] = frequency
 
-def update_vocabulary(vocabulary, tokens, merged_token):
-    merged_token_freq = sum(token.count(merged_token) for token in tokens)
-    vocabulary[merged_token] = merged_token_freq
+    # Decrease the frequencies of the immediate constituent tokens
+    immediate_constituents = [
+        new_merged_token[:-1],  # The part of the token excluding the last character
+        new_merged_token[-1]    # The last character of the token
+    ]
 
-    # Depreciate the frequencies of the constituent tokens
-    part1, part2 = merged_token[0], merged_token[1:]
-    if part1 in vocabulary:
-        vocabulary[part1] -= merged_token_freq
-    if part2 in vocabulary:
-        vocabulary[part2] -= merged_token_freq
+    for constituent in immediate_constituents:
+        if constituent in vocabulary and constituent not in previous_merged_tokens:
+            vocabulary[constituent] -= frequency
+
+    # Update the list of previous merged tokens
+    previous_merged_tokens.add(new_merged_token)
+
 
 
 
@@ -203,16 +231,23 @@ def update_vocabulary(vocabulary, tokens, merged_token):
 def bpe(token_list, vocab_size):
     tokens = [token for sublist in token_list for token in sublist]
     vocabulary = create_initial_vocabulary(tokens)
+    previous_merged_tokens = set()  # Keep track of merged tokens
 
     while len(vocabulary) < vocab_size:
-        most_frequent_pair = find_most_frequent_pair(tokens, vocabulary)
-        if not most_frequent_pair:
+        merged_freqs = calculate_merged_token_frequencies(tokens, vocabulary)
+        most_frequent_new_token = find_most_frequent_new_token(merged_freqs, vocabulary)
+
+        if not most_frequent_new_token:
             break
 
-        # Update the vocabulary with the new merged token
-        update_vocabulary(vocabulary, tokens, most_frequent_pair)
+        # Update the vocabulary and adjust frequencies
+        update_vocabulary(vocabulary, most_frequent_new_token, merged_freqs[most_frequent_new_token], previous_merged_tokens)
 
     return vocabulary
+
+
+
+
 
 
 
