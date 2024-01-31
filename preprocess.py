@@ -107,12 +107,16 @@ def tokenizeText(cleaned_text):
 #Purpose: find the vocabulary from the tokenized text
 def create_initial_vocabulary(tokens):
     vocabulary = defaultdict(int)
+    #create inital vocab for everytthing
     for token in tokens:
         for character in token:
             vocabulary[character] += 1
     return vocabulary
 
 
+# input: list of token words
+#output: dictonary with each unique pair of characters and their frequncies
+#purpose: precompute pair frequenices to save calculation time
 def precompute_pair_frequencies(tokens):
     pair_freqs = defaultdict(int)
     for token in tokens:
@@ -121,15 +125,23 @@ def precompute_pair_frequencies(tokens):
             pair_freqs[pair] += 1
     return pair_freqs
 
+#input: token list
+#output: dictonary with subtokens as keys and position as frequencies
+#purpose: precompute token positions to save time on searching
 def precompute_token_positions(tokens):
     token_positions = defaultdict(list)
+    #iterate each token and sub tokens
     for index, token in enumerate(tokens):
         for i in range(len(token)):
             for j in range(i + 1, len(token) + 1):
                 sub_token = token[i:j]
+                # Record the position of each sub-token
                 token_positions[sub_token].append((index, i, j))  # word index, start, and end positions
     return token_positions
 
+# takes in 2 tokens and their posiitons
+# output: returns boolean yes if they can be merged
+# purpose: check if two tokens can be merged
 def can_merge(token1, token2, token_positions):
     # Check if token1 and token2 overlap in any word
     for pos1 in token_positions[token1]:
@@ -150,7 +162,9 @@ def find_most_frequent_pair(pair_freqs):
     return None
 
 
-
+# input:
+# output:
+# purpose: 
 def update_pair_frequencies(pair_freqs, tokens, new_token, vocabulary):
     # Convert tuple to string if necessary
     if isinstance(new_token, tuple):
@@ -337,7 +351,7 @@ def main():
 
     with open("preprocess.output", "w") as file:
         file.write(f"Tokens [{len(vocabulary)}]\n")
-        file.write(f"Merge rules [{len(sorted_merge_rules)}]\n")
+        file.write(f"Merge rules [{len(merge_rules)}]\n")
         
         # Write top 20 merge rules
         for rule in sorted_merge_rules:
