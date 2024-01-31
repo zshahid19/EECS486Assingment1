@@ -290,6 +290,7 @@ def bpe(token_list, vocab_size):
     merge_rules = []  # Initialize list to keep track of merge rules
 
     while len(vocabulary) < vocab_size:
+        print("vocab size is currently", len(vocabulary))
         pair_freqs = calculate_merged_token_frequencies(working_list, vocabulary)
         most_frequent_pair = find_most_frequent_pair(pair_freqs)
 

@@ -1,4 +1,74 @@
-Tokens [0]
-Merge rules [0]
+Tokens [10000]
+Merge rules [20]
+t + h -> the [18635]
+o + f -> of [12664]
+a + n -> and [6653]
+t + o -> to [4067]
+i + s -> is [3414]
+f + o -> for [2548]
+a + r -> are [2402]
+w + i -> with [2266]
+b + y -> by [1756]
+f + l -> flow [1663]
+t + h -> that [1566]
+f + r -> from [1117]
+t + h -> this [1081]
+w + h -> which [975]
+n + u -> number [958]
+p + r -> pressure [934]
+b + o -> boundary [886]
+r + e -> results [885]
+m + a -> mach [824]
+t + h -> theory [779]
 
 Top 50 tokens
+the: 18635
+of: 12664
+and: 6653
+to: 4067
+is: 3414
+for: 2548
+are: 2402
+with: 2266
+by: 1756
+flow: 1663
+that: 1566
+from: 1117
+this: 1081
+which: 975
+number: 958
+pressure: 934
+boundary: 886
+results: 885
+mach: 824
+theory: 779
+was: 691
+method: 688
+been: 591
+j: 583
+were: 583
+obtained: 539
+given: 521
+effects: 511
+shock: 500
+these: 500
+has: 483
+velocity: 483
+equations: 477
+supersonic: 461
+made: 449
+surface: 442
+layer: 439
+presented: 425
+experimental: 423
+found: 423
+laminar: 411
+conditions: 411
+ratio: 402
+have: 397
+two: 395
+analysis: 388
+effect: 387
+reynolds: 377
+numbers: 373
+problem: 364
