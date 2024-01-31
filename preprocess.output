@@ -1,0 +1,104 @@
+Tokens [100]
+Merge rules [53]
+t + h -> th
+o + n -> on
+i + n -> in
+r + e -> re
+a + t -> at
+e + r -> er
+a + n -> an
+o + f -> of
+e + n -> en
+a + l -> al
+t + i -> ti
+i + s -> is
+e + d -> ed
+o + r -> or
+e + s -> es
+a + r -> ar
+i + c -> ic
+a + s -> as
+s + i -> si
+l + e -> le
+t + o -> to
+s + u -> su
+r + o -> ro
+s + t -> st
+u + n -> un
+l + o -> lo
+a + c -> ac
+m + p -> mp
+t + r -> tr
+i + t -> it
+d + i -> di
+b + o -> bo
+c + o -> co
+a + m -> am
+e + l -> el
+b + e -> be
+t + s -> ts
+h + e -> he
+e + c -> ec
+a + y -> ay
+d + e -> de
+f + f -> ff
+l + y -> ly
+n + o -> no
+v + e -> ve
+l + i -> li
+s + e -> se
+s + o -> so
+l + u -> lu
+w + i -> wi
+m + e -> me
+a + p -> ap
+u + m -> um
+
+Top 50 tokens
+e [5398]
+t [4097]
+a [3635]
+i [3448]
+n [3361]
+o [3210]
+s [3017]
+r [2916]
+l [1860]
+h [1707]
+c [1536]
+d [1506]
+f [1353]
+u [1208]
+m [1089]
+p [1006]
+y [733]
+b [710]
+g [628]
+w [516]
+v [407]
+- [164]
+x [134]
+k [117]
+1 [115]
+, [107]
+2 [93]
+5 [84]
+j [80]
+9 [74]
+q [73]
+6 [49]
+0 [49]
+7 [48]
+3 [47]
+4 [46]
+z [38]
+8 [37]
+' [9]
+U [2]
+/ [2]
+T [1]
+S [1]
+A [1]
+F [1]
+W [1]
+N [1]

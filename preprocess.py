@@ -113,48 +113,88 @@ def create_initial_vocabulary(tokens):
     return vocabulary
 
 
-#Input: tokenized_text
-#Output: dict with pair frequencies
-#Purpose: Calculates the frequinces of character pairs
-def find_most_frequent_pair(tokens):
+def precompute_pair_frequencies(tokens):
     pair_freqs = defaultdict(int)
     for token in tokens:
         for i in range(len(token) - 1):
-            # Considering pairs that are not part of a merged token
-            if len(token[i]) == 1 and len(token[i + 1]) == 1:
-                pair = (token[i], token[i + 1])
+            pair = (token[i], token[i + 1])
+            pair_freqs[pair] += 1
+    return pair_freqs
+
+
+#Input: tokenized_text
+#Output: dict with pair frequencies
+#Purpose: Calculates the frequinces of character pairs
+def find_most_frequent_pair(tokens, vocabulary):
+    pair_freqs = defaultdict(int)
+
+    for token in tokens:
+        i = 0
+        while i < len(token) - 1:
+            if token[i:i+2] not in vocabulary:  # Check if the pair is not already a merged token
+                pair = token[i] + token[i + 1]
                 pair_freqs[pair] += 1
-    return max(pair_freqs, key=pair_freqs.get) if pair_freqs else None
+                i += 1  # Move to the next character
+            else:
+                i += 2  # Skip the next character as it's part of a merged pair
+    # Find the most frequent pair not in vocabulary
+    sorted_pairs = sorted(pair_freqs.items(), key=lambda x: x[1], reverse=True)
+    for pair, _ in sorted_pairs:
+        if pair not in vocabulary:
+            return pair
+    return None
+
+
+
+
+def update_pair_frequencies(pair_freqs, tokens, new_token, vocabulary):
+    # Convert tuple to string if necessary
+    if isinstance(new_token, tuple):
+        new_token = ''.join(new_token)
+
+    # Update frequencies for pairs that include the new token
+    for token in tokens:
+        if new_token in token:
+            start_idx = token.index(new_token)
+            # Check for pairs with the new token at the start
+            if start_idx + len(new_token) < len(token):
+                next_char = token[start_idx + len(new_token)]
+                pair_freqs[new_token + next_char] += 1
+            # Check for pairs with the new token at the end
+            if start_idx > 0:
+                prev_char = token[start_idx - 1]
+                pair_freqs[prev_char + new_token] += 1
+    return
+
+
 
 
 # Input: pair of two characters, tokenized_text
 # Output: merged pair token
 # Purpose: merge pair of character
-def merge_tokens(tokens, pair):
-    merged_token = ''.join(pair)
+def merge_tokens(tokens, merged_token):
+    if isinstance(merged_token, tuple):
+        merged_token = ''.join(merged_token)
+    
     new_tokens = []
     for token in tokens:
-        new_token = []
-        i = 0
-        while i < len(token):
-            if i < len(token) - 1 and token[i:i+2] == list(pair):
-                new_token.append(merged_token)
-                i += 2  # Skip the next character as it's part of the merged pair
-            else:
-                new_token.append(token[i])
-                i += 1
-        new_tokens.append(new_token)
+        new_token = token.replace(merged_token, f" {merged_token} ")
+        new_tokens.extend(new_token.split())
     return new_tokens
 
+
+
 def update_vocabulary(vocabulary, tokens, merged_token):
-    merged_token_frequency = sum(token.count(merged_token) for token in tokens)
-    vocabulary[merged_token] += merged_token_frequency
+    merged_token_freq = sum(token.count(merged_token) for token in tokens)
+    vocabulary[merged_token] = merged_token_freq
 
-    for char in set(merged_token):
-        if char in vocabulary:
-            vocabulary[char] -= merged_token_frequency * merged_token.count(char)
+    # Depreciate the frequencies of the constituent tokens
+    part1, part2 = merged_token[0], merged_token[1:]
+    if part1 in vocabulary:
+        vocabulary[part1] -= merged_token_freq
+    if part2 in vocabulary:
+        vocabulary[part2] -= merged_token_freq
 
-    return vocabulary
 
 
 #input list( of tokens), vocabSize
@@ -163,22 +203,19 @@ def update_vocabulary(vocabulary, tokens, merged_token):
 def bpe(token_list, vocab_size):
     tokens = [token for sublist in token_list for token in sublist]
     vocabulary = create_initial_vocabulary(tokens)
-    merge_rules = []
 
     while len(vocabulary) < vocab_size:
-        most_frequent_pair = find_most_frequent_pair(tokens)
+        most_frequent_pair = find_most_frequent_pair(tokens, vocabulary)
         if not most_frequent_pair:
             break
-        tokens = merge_tokens(tokens, most_frequent_pair)
-        merged_token = ''.join(most_frequent_pair)
-        vocabulary = update_vocabulary(vocabulary, tokens, merged_token)
-        merge_rules.append(most_frequent_pair)
 
-    token_frequencies = defaultdict(int)
-    for token in tokens:
-        token_frequencies[token] += 1
+        # Update the vocabulary with the new merged token
+        update_vocabulary(vocabulary, tokens, most_frequent_pair)
 
-    return tokens, vocabulary, merge_rules, token_frequencies
+    return vocabulary
+
+
+
 
 
 
@@ -206,23 +243,23 @@ def main():
     # print(len(token_list)) Now we have a list of list of tokens 2d list.
     
     #BPE time
-    new_text, new_vocab, merge_rules, token_frequencies = bpe(token_list, vocab_size)
+    vocabulary, merge_rules = bpe(token_list, vocab_size)
 
     # Sort tokens and merge rules
-    sorted_tokens = sorted(token_frequencies.items(), key=lambda x: x[1], reverse=True)
+    sorted_tokens = sorted(vocabulary.items(), key=lambda x: x[1], reverse=True)
     sorted_merge_rules = merge_rules[:20]  # First 20 merge rules
 
     with open("preprocess.output", "w") as file:
-        file.write(f"Tokens [{len(new_vocab)}]\n")
+        file.write(f"Tokens [{len(vocabulary)}]\n")
         file.write(f"Merge rules [{len(merge_rules)}]\n")
         
         # Write merge rules
-        for rule in merge_rules:
+        for rule in sorted_merge_rules:
             file.write(f"{rule[0]} + {rule[1]} -> {rule[0] + rule[1]}\n")
 
         file.write("\nTop 50 tokens\n")
-        for token, freq in sorted_tokens[:50]:
-            file.write(f"{token} [{freq}]\n")
+        for token, freq in sorted_tokens.items():
+            file.write(f"{token}: {freq}\n")
 
 
 def open_file(file_name):
